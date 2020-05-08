@@ -7,3 +7,12 @@ C:\Users\cbtes\source\repos\Stocker\Stocker\obj\Debug\Stocker.csprojAssemblyRefe
 C:\Users\cbtes\source\repos\Stocker\Stocker\obj\Debug\Stocker.csproj.CopyComplete
 C:\Users\cbtes\source\repos\Stocker\Stocker\obj\Debug\Stocker.exe
 C:\Users\cbtes\source\repos\Stocker\Stocker\obj\Debug\Stocker.pdb
+C:\Users\cbtes\source\repos\GitHUb\Stocker\Stocker\Stocker\bin\Debug\Stocker.exe.config
+C:\Users\cbtes\source\repos\GitHUb\Stocker\Stocker\Stocker\bin\Debug\Stocker.exe
+C:\Users\cbtes\source\repos\GitHUb\Stocker\Stocker\Stocker\bin\Debug\Stocker.pdb
+C:\Users\cbtes\source\repos\GitHUb\Stocker\Stocker\Stocker\bin\Debug\Newtonsoft.Json.dll
+C:\Users\cbtes\source\repos\GitHUb\Stocker\Stocker\Stocker\bin\Debug\Newtonsoft.Json.xml
+C:\Users\cbtes\source\repos\GitHUb\Stocker\Stocker\Stocker\obj\Debug\Stocker.csprojAssemblyReference.cache
+C:\Users\cbtes\source\repos\GitHUb\Stocker\Stocker\Stocker\obj\Debug\Stocker.csproj.CopyComplete
+C:\Users\cbtes\source\repos\GitHUb\Stocker\Stocker\Stocker\obj\Debug\Stocker.exe
+C:\Users\cbtes\source\repos\GitHUb\Stocker\Stocker\Stocker\obj\Debug\Stocker.pdb

@@ -14,9 +14,9 @@ namespace Stocker
         static void Main(string[] args)
         {
             var runData = new RunData();
-            // Start Date, End Date, High, Max, Dtop
+            // Start Date, End Date, High, Max, Drop, Load Only Pct Changes
             runData.Run(new DateTime(2019,01, 01), new DateTime(2020, 05, 01), 0.05, 10, -0.3,true);
-         //  runData.LoadData();
+            //LoadData.LoadAllData();
         }
     }
 
