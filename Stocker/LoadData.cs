@@ -17,9 +17,14 @@ namespace Stocker
         //Load all stock history from Tiingo API
         public static async void LoadAllData()
         {
-            Console.Write("Enter API Key: ");
-            var key = Console.ReadLine();
-            Console.Write("Enter year to load:");
+            //  Console.Write("Enter API Key: ");
+            var key = "";// Console.ReadLine();
+            using (var reader = new StreamReader($@"C:\temp\key.txt"))
+            {
+                while (!reader.EndOfStream)
+                { key = reader.ReadLine(); }
+            }
+                    Console.Write("Enter year to load:");
             var year = Console.ReadLine();
             var c = 0;
             List<string> log = new List<string>();

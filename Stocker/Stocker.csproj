@@ -50,6 +50,7 @@
     <Compile Include="LoadData.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RunDataV2.cs" />
     <Compile Include="RunData.cs" />
     <Compile Include="StockData.cs" />
     <Compile Include="StockHist.cs" />

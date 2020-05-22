@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Stocker
 {
-    public class RunData
+    public class RunDataV2
     {
         double startBal = 1000.0;
         double profit = 0.0;
@@ -27,21 +27,23 @@ namespace Stocker
         double _change = 0.0;
         double _high;
         double _drop;
-        public void Run(DateTime startDate, DateTime endDate, double change, double high, double drop, bool pctOnly = false)
+        double _minDrop;
+        public void Run(DateTime startDate, DateTime endDate, double change, double high, double drop, double minDrop, bool pctOnly = false)
         {
             _pctOnly = pctOnly;
             _high = high;
             _drop = drop;
             _change = change;
+            _minDrop = minDrop;
 
             try
             {
                 // set years to sample
-                var years = new List<string> { startDate.Year.ToString()};
+                var years = new List<string> { startDate.Year.ToString() };
                 if (startDate.Year != endDate.Year)
                 {
                     var end = endDate.Year;
-                    while(end != startDate.Year)
+                    while (end != startDate.Year)
                     {
                         years.Add(end.ToString());
                         end--;
@@ -64,22 +66,22 @@ namespace Stocker
                             st.High = Double.Parse(values[3]);
                             st.Low = Double.Parse(values[4]);
                             st.Close = Double.Parse(values[5]);
-                            if(st.Date.Date >= startDate && st.Date.Date <= endDate)
+                            if (st.Date.Date >= startDate && st.Date.Date <= endDate)
                                 AllStockHistory.Add(st);
                         }
                     }
                 }
 
-                var stocksInRange = AllStockHistory.Where(a => a.Open <= _high);
-                foreach (var s in stocksInRange)
+                var stocksInRange = AllStockHistory.Select(d=>d.Date).Distinct().Count();
+                foreach (var date in EachDay(startDate,endDate))
                 {
-                    if (!added.Contains(s.Symbol))
-                        Lookup(s.Symbol, count++, stocksInRange.Count());
-                    added.Add(s.Symbol);
+                    //if (!added.Contains(s.Symbol))
+                        Lookup(date.Date, count++, stocksInRange);
+                    //added.Add(s.Symbol);
                 }
 
                 if (_pctOnly)
-                    File.WriteAllLines(Path.Combine("c:\\temp", "pct.csv"), log);
+                    File.WriteAllLines(Path.Combine("c:\\temp", "pct"+_drop+".csv"), log);
                 else
                 {
                     Buy(startBal, Buys.OrderBy(b => b.Date).First().Date);
@@ -107,71 +109,100 @@ namespace Stocker
             }
         }
 
-        public void Lookup(string s, int cnt, int t)
+        public void Lookup(DateTime date, int cnt, int t)
         {
-            var StockHistory = AllStockHistory.Where(st => st.Symbol == s).OrderBy(x => x.Date).ToArray();
+            var drop = _drop;
+            
+            var bought = false;
 
-            foreach (var sh in StockHistory.Where(x => x.Open <= _high))
+            var StockHistory = AllStockHistory.Where(x => x.Date == date).Where(x => x.Open <= _high).ToArray();
+            if (StockHistory.Count() > 0)
             {
-                Console.Write("\r Loading " + cnt + "/" + t);
-                var pchange = (sh.Close - sh.Open) / sh.Open;
-                if (pchange <= _drop)
+                var lookForNext = new List<double> { drop };
+                while (lookForNext.Count() > 0)
                 {
-                    var nextIndex = Array.IndexOf(StockHistory, sh) + 1;
-                    if (nextIndex < StockHistory.Length && nextIndex + 1 < StockHistory.Length)
+                    var dr = lookForNext.OrderByDescending(x=>x).First();
+                    var chnge = dr + 0.1;
+                    lookForNext.Clear();
+                    foreach (var sh in StockHistory)
                     {
-                        var next = StockHistory[nextIndex];
-                        var next2 = StockHistory[nextIndex + 1];
-                        var dt = new DateTime();
-
-                        var cng = (next.High - sh.Close) / next.Close;
-
-                        if (_pctOnly)
-                        {
-                            log.Add(
-                                $"{sh.Date.Date}," +
-                                $"{cng}"
-                                );
-                        }
-                        else
-                        {
-                            var sell = 0.0;
-
-                            if (cng >= _change)
-                            {
-                                dt = next.Date.DateTime;
-                                sell = sh.Close + ((sh.Close / 100) * (_change * 100));
-                            }
-                            //else if (((next2.High - sh.Close) / next2.Close) >= _change)
-                            //{
-                            //    dt = next2.Date.DateTime;
-                            //    sell = sh.Close + ((sh.Close / 100) * (_change * 100));
-                            //}
-                            else
-                            {
-                                dt = next.Date.DateTime;
-                                sell = next.Close;
-                            }
-                            if (Buys.SingleOrDefault(b => b.Date == sh.Date) == null)
-                                Buys.Add(new DateStructure() { Date = sh.Date, SellDate = dt, StockAndPrices = new List<StockAndPrice>() { new StockAndPrice() { Stock = s, Price = sh.Close } } });
-                            else
-                                Buys.SingleOrDefault(b => b.Date == sh.Date).StockAndPrices.Add(new StockAndPrice() { Stock = s, Price = sh.Close });
-                            if (Sells.SingleOrDefault(b => b.BoughtDate == sh.Date) == null)
-                                Sells.Add(new DateStructure() { SellDate = dt, BoughtDate = sh.Date, StockAndPrices = new List<StockAndPrice>() { new StockAndPrice() { Stock = s, Price = sell } } });
-                            else
-                                Sells.SingleOrDefault(b => b.BoughtDate == sh.Date).StockAndPrices.Add(new StockAndPrice() { Stock = s, Price = sell });
-                        }
+                        Console.Write("\r Loading " + cnt + "/" + t);
+                        lookForNext.AddRange( GetData(sh,dr,chnge));
                     }
                 }
             }
-            
         }
-    
+
+        public List<double> GetData(StockHist sh, double drp, double chnge)
+        {
+            var otherDrops = new List<double>();
+            var AllStockHistories = AllStockHistory.Where(st => st.Symbol == sh.Symbol).OrderBy(x => x.Date).ToArray();
+            var pchange = (sh.Close - sh.Open) / sh.Open;
+            if (pchange <= drp)
+            {
+                var nextIndex = Array.IndexOf(AllStockHistories, sh) + 1;
+                if (nextIndex < AllStockHistories.Length && nextIndex + 1 < AllStockHistories.Length)
+                {
+                    var next = AllStockHistories[nextIndex];
+                    // var next2 = All[nextIndex + 1];
+                    var dt = new DateTime();
+
+                    var cng = (next.High - sh.Close) / next.Close;
+
+                    if (_pctOnly)
+                    {
+                        log.Add(
+                            $"{sh.Date.Date}," +
+                            $"{cng}"
+                            );
+                    }
+                    else
+                    {
+                        var sell = 0.0;
+
+                        if (cng >= chnge)
+                        {
+                            dt = next.Date.DateTime;
+                            sell = sh.Close + ((sh.Close / 100) * (chnge * 100));
+                        }
+                        //else if (((next2.High - sh.Close) / next2.Close) >= _change)
+                        //{
+                        //    dt = next2.Date.DateTime;
+                        //    sell = sh.Close + ((sh.Close / 100) * (_change * 100));
+                        //}
+                        else
+                        {
+                            dt = next.Date.DateTime;
+                            sell = next.Close;
+                        }
+                        if (Buys.SingleOrDefault(b => b.Date == sh.Date) == null)
+                            Buys.Add(new DateStructure() { Date = sh.Date, SellDate = dt, StockAndPrices = new List<StockAndPrice>() { new StockAndPrice() { Stock = sh.Symbol, Price = sh.Close } } });
+                        else
+                            Buys.SingleOrDefault(b => b.Date == sh.Date).StockAndPrices.Add(new StockAndPrice() { Stock = sh.Symbol, Price = sh.Close });
+                        if (Sells.SingleOrDefault(b => b.BoughtDate == sh.Date) == null)
+                            Sells.Add(new DateStructure() { SellDate = dt, BoughtDate = sh.Date, StockAndPrices = new List<StockAndPrice>() { new StockAndPrice() { Stock = sh.Symbol, Price = sell } } });
+                        else
+                            Sells.SingleOrDefault(b => b.BoughtDate == sh.Date).StockAndPrices.Add(new StockAndPrice() { Stock = sh.Symbol, Price = sell });
+                    }
+                }
+            }
+            else
+            {
+                while(drp <= _minDrop)
+                {
+                    drp += 0.1;
+                    if (pchange <= drp)
+                        otherDrops.Add(drp);
+                }
+            }
+            return otherDrops;
+        }
+
 
         public void Buy(double bal, DateTimeOffset date)
         {
-            var availDates = Buys.Where(b => b.Date >= date );
-            if(availDates.Count() > 0 && bal != 0)
+            var availDates = Buys.Where(b => b.Date >= date);
+            if (availDates.Count() > 0 && bal != 0)
             {
                 //Price for bought = Quantity
                 var buys = availDates.OrderBy(b => b.Date).First();
@@ -207,7 +238,7 @@ namespace Stocker
             {
                 foreach (var s in sell.StockAndPrices)
                 {
-                    bal += Owned.Where(o => o.Date == sell.BoughtDate).SelectMany(z=>z.StockAndPrices).Where(x => x.Stock == s.Stock).Select(p=>p.Price).Sum() * sell.StockAndPrices.Single(x => x.Stock == s.Stock).Price;
+                    bal += Owned.Where(o => o.Date == sell.BoughtDate).SelectMany(z => z.StockAndPrices).Where(x => x.Stock == s.Stock).Select(p => p.Price).Sum() * sell.StockAndPrices.Single(x => x.Stock == s.Stock).Price;
                 }
 
                 var prof = 0.0;
@@ -225,6 +256,10 @@ namespace Stocker
             }
             return bal;
         }
-        
+        public IEnumerable<DateTime> EachDay(DateTime from, DateTime thru)
+        {
+            for (var day = from.Date; day.Date <= thru.Date; day = day.AddDays(1))
+                yield return day;
+        }
     }
 }
