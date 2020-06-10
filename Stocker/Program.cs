@@ -18,8 +18,8 @@ namespace Stocker
             {
                 var runData = new RunDataV2();
                 // Start Date, End Date, High, Max, Drop, Load Only Pct Changes
-                runData.Run(new DateTime(2019, 01, 01), new DateTime(2020, 12, 31), 0.3, 10, -0.4, -0.2);
-              // LoadData.LoadAllData();
+             runData.Run(new DateTime(2010, 01, 01), new DateTime(2018, 12, 31), 999, 10, -0.5, -0.3);
+            //   LoadData.LoadAllData();
             }
             catch (Exception e)
             {

@@ -53,6 +53,7 @@ namespace Stocker
                 var added = new List<string>();
                 foreach (var year in years)
                 {
+                    Console.WriteLine("Loading " + year);
                     using (var reader = new StreamReader($@"C:\temp\{year}.csv"))
                     {
                         while (!reader.EndOfStream)
@@ -72,12 +73,11 @@ namespace Stocker
                     }
                 }
 
-                var stocksInRange = AllStockHistory.Select(d=>d.Date).Distinct().Count();
-                foreach (var date in EachDay(startDate,endDate))
+                var stocksInRange = AllStockHistory.Select(d => d.Date).Distinct().OrderBy(s=>s.Date);
+                var t = stocksInRange.Count();
+                foreach (var date in stocksInRange)
                 {
-                    //if (!added.Contains(s.Symbol))
-                        Lookup(date.Date, count++, stocksInRange);
-                    //added.Add(s.Symbol);
+                    Lookup(date.Date, count++, t);
                 }
 
                 if (_pctOnly)
@@ -112,17 +112,15 @@ namespace Stocker
         public void Lookup(DateTime date, int cnt, int t)
         {
             var drop = _drop;
-            
-            var bought = false;
 
-            var StockHistory = AllStockHistory.Where(x => x.Date == date).Where(x => x.Open <= _high).ToArray();
+            var StockHistory = AllStockHistory.Where(x => x.Date == date).Where(x => x.Open <= _high);
             if (StockHistory.Count() > 0)
             {
                 var lookForNext = new List<double> { drop };
                 while (lookForNext.Count() > 0)
                 {
                     var dr = lookForNext.OrderByDescending(x=>x).First();
-                    var chnge = dr + 0.1;
+                    var chnge = -dr - 0.1;
                     lookForNext.Clear();
                     foreach (var sh in StockHistory)
                     {
@@ -136,15 +134,13 @@ namespace Stocker
         public List<double> GetData(StockHist sh, double drp, double chnge)
         {
             var otherDrops = new List<double>();
-            var AllStockHistories = AllStockHistory.Where(st => st.Symbol == sh.Symbol).OrderBy(x => x.Date).ToArray();
             var pchange = (sh.Close - sh.Open) / sh.Open;
-            if (pchange <= drp)
+
+            if (pchange <= drp && Buys.SingleOrDefault(s=>s.Date == sh.Date && s.StockAndPrices.Select(x=>x.Stock).Contains(sh.Symbol)) == null)
             {
-                var nextIndex = Array.IndexOf(AllStockHistories, sh) + 1;
-                if (nextIndex < AllStockHistories.Length && nextIndex + 1 < AllStockHistories.Length)
+                var next = AllStockHistory.Where(s => s.Symbol == sh.Symbol).Where(s => s.Date > sh.Date).OrderBy(s => s.Date).FirstOrDefault();
+                if (next != null)
                 {
-                    var next = AllStockHistories[nextIndex];
-                    // var next2 = All[nextIndex + 1];
                     var dt = new DateTime();
 
                     var cng = (next.High - sh.Close) / next.Close;
@@ -165,11 +161,6 @@ namespace Stocker
                             dt = next.Date.DateTime;
                             sell = sh.Close + ((sh.Close / 100) * (chnge * 100));
                         }
-                        //else if (((next2.High - sh.Close) / next2.Close) >= _change)
-                        //{
-                        //    dt = next2.Date.DateTime;
-                        //    sell = sh.Close + ((sh.Close / 100) * (_change * 100));
-                        //}
                         else
                         {
                             dt = next.Date.DateTime;
@@ -188,11 +179,12 @@ namespace Stocker
             }
             else
             {
+                drp += 0.1;
                 while(drp <= _minDrop)
                 {
-                    drp += 0.1;
                     if (pchange <= drp)
                         otherDrops.Add(drp);
+                    drp += 0.1;
                 }
             }
             return otherDrops;
